@@ -41,3 +41,25 @@ def test_fallback_when_provider_fails(service: AssistantService) -> None:
     assert response.intent is Intent.RULE
     assert response.degraded is True
     assert len(response.sources) > 0
+
+
+def test_fee_answer_is_formatted(service: AssistantService) -> None:
+    response = service.handle(Message(text="tuition for 18 credits and 2 retake"))
+    assert response.answer == "Your tuition is 9,450,000 VND."
+
+
+def test_fee_without_credits_raises_invalid_request(service: AssistantService) -> None:
+    import pytest
+
+    from assistant_core.errors import InvalidRequest
+
+    with pytest.raises(InvalidRequest):
+        service.handle(Message(text="tuition"))
+
+
+def test_empty_message_rejected() -> None:
+    import pytest
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        Message(text="")
