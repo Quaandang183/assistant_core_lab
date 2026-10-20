@@ -9,6 +9,7 @@ class Intent(str, Enum):
     FEE = "fee"
     OFFICE = "office"
     RULE = "rule"
+    EXAM_ABSENCE = "exam_absence"
     UNKNOWN = "unknown"
 
 

@@ -37,6 +37,22 @@ def test_route_help(router_module, intent_type, office_names, text):
 @pytest.mark.parametrize(
     "text",
     [
+        "exam absence",
+        "EXAM ABSENCE",
+        "What is the deadline for exam absence?",
+        "missed exam",
+        "vang thi",
+        "nghi thi?!.",
+    ],
+)
+def test_route_exam_absence(router_module, intent_type, office_names, text):
+    assert router_module.route(text, office_names) is intent_type.EXAM_ABSENCE
+
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
         "fee",
         "What is the tuition?",
         "TUITION!",
