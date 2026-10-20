@@ -1,13 +1,26 @@
 import pytest
 
+from assistant_core.errors import InvalidRequest
 from assistant_core.tools import parse_credits, tuition
-from assistant_core.exceptions import InvalidRequest  
+
+
 def test_parse_with_retake():
     assert parse_credits("tuition for 18 credits and 2 retake") == (18, 2)
 
 
+def test_parse_without_retake():
+    assert parse_credits("fee for 20 credits") == (20, 0)
+
+
+def test_parse_without_numbers():
+    with pytest.raises(InvalidRequest):
+        parse_credits("what is the tuition")
+
+
 def test_tuition_value():
-    assert tuition(18, 2, 450_000, 1.5, 30) == 9_450_000  
+    # characterisation test: same value as the monolith
+    assert tuition(18, 2, 450_000, 1.5, 30) == 9_450_000
+
 
 @pytest.mark.parametrize("credits", [0, 31])
 def test_tuition_out_of_range(credits):

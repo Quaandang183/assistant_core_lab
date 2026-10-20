@@ -1,9 +1,7 @@
+
 import re
 
-
-# Định nghĩa InvalidRequest (hoặc import từ module nội bộ như from .exceptions import InvalidRequest)
-class InvalidRequest(Exception):
-    pass
+from assistant_core.errors import InvalidRequest
 
 
 def parse_credits(text: str) -> tuple[int, int]:
@@ -21,16 +19,8 @@ def parse_credits(text: str) -> tuple[int, int]:
     return others[0], retake_n
 
 
-def tuition(
-    credits: int,
-    retake: int,
-    rate: int,
-    retake_multiplier: float,
-    max_credits: int,
-) -> int:
+def tuition(credits: int, retake: int, rate: int, retake_multiplier: float, max_credits: int) -> int:
     if not 1 <= credits <= max_credits:
-        raise InvalidRequest(
-            f"Credits must be between 1 and {max_credits}."
-        )
+        raise InvalidRequest(f"Credits must be between 1 and {max_credits}.")
 
     return int(credits * rate + retake * rate * retake_multiplier)
