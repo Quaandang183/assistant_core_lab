@@ -1,4 +1,6 @@
-from .models import Intent
+"""Rule-based intent routing."""
+
+from assistant_core.models import Intent
 
 GREETINGS = frozenset({"hi", "hello", "hey", "xin chao"})
 
