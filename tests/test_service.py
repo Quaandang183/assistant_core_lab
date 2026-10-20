@@ -1,0 +1,43 @@
+from assistant_core.models import Intent, Message
+from assistant_core.responder import StubLLMResponder
+from assistant_core.service import AssistantService
+
+
+def test_handle_greeting(service: AssistantService) -> None:
+    response = service.handle(Message(text="hi"))
+    assert response.intent is Intent.GREETING
+    assert "Hello!" in response.answer
+
+
+def test_handle_fee(service: AssistantService) -> None:
+    response = service.handle(Message(text="tuition for 18 credits and 2 retake"))
+    assert response.intent is Intent.FEE
+    assert "9450000" in response.answer or "9,450,000" in response.answer
+
+
+def test_handle_office(service: AssistantService) -> None:
+    response = service.handle(Message(text="where is the library"))
+    assert response.intent is Intent.OFFICE
+    assert "B.201" in response.answer
+
+
+def test_handle_rule_success(service: AssistantService) -> None:
+    response = service.handle(Message(text="thesis registration credits"))
+    assert response.intent is Intent.RULE
+    assert response.degraded is False
+    assert len(response.sources) > 0
+
+
+def test_handle_rule_unknown(service: AssistantService) -> None:
+    response = service.handle(Message(text="xyz random question 12345"))
+    assert response.intent is Intent.UNKNOWN
+    assert "Sorry" in response.answer
+
+
+def test_fallback_when_provider_fails(service: AssistantService) -> None:
+    service.responder = StubLLMResponder(fail=True)
+    response = service.handle(Message(text="thesis registration credits"))
+
+    assert response.intent is Intent.RULE
+    assert response.degraded is True
+    assert len(response.sources) > 0
