@@ -1,10 +1,25 @@
-1. "Add an 'exam absence' answer that tells students the deadline from the handbook."
-2. > "Add a 'help' feature to the assistant_core service. When the user asks 'help' or 'what can you do', the bot should return a list of supported features. Update router.py, models.py, and service.py accordingly."
+# Lab 3 — AI extension review
 
-3. 
+1. **Feature**: "Add an 'exam absence' answer that tells students the deadline from the handbook."
+2. **Paste the prompt you used**:
+
+```text
+Extend the assistant_core service with an 'exam absence' feature that answers students' questions about the exam absence deadline using rule H26-7.2 from handbook.json.
+```
+
+3. **Review the generated code manually. Document at least three changes you made**:
 
 | # | What the AI generated | Problem you found | What you changed | Why |
 |---|---|---|---|---|
-| 1 | `log.info(f"User sent: {msg.text}")` inside the `handle()` function to debug the help request. | Logged the full raw user message, violating the requirement to prevent logging of user data. | Removed the logging statement completely and relied on the existing structured JSON logger which only logs the `intent`[cite: 23]. | To ensure data privacy and prevent leaking raw user input into the system logs. |
-| 2 | `answer="I can help with greetings, fees, offices, rules."` hardcoded in `service.py`. | Magic string. If a new intent is added later, this string must be manually tracked and updated. | Generated the list of capabilities dynamically by iterating over the `Intent` enum values (excluding `UNKNOWN`). | Improves maintainability, ensures a single source of truth, and respects the boundaries of the data models. |
-| 3 | Provided the implementation logic but no test cases for `router.py` or `service.py`. | Incomplete feature; missing tests violate the quality gates and the requirement for meaningful tests[cite: 23]. | Added `test_route_help()` in `test_router.py` and a characterization test in `test_service.py` to verify the routing behavior. | Ensures the new routing logic is deterministic, testable offline, and protected against future regressions[cite: 23]. |
+| 1 | AI hardcoded a static response string (`"Exam absence deadline is 3 days"`) inside `service.py` without looking up `handbook.json`. | Violated the single source of truth design. Handbook rules must come from `Handbook` and cite official sources (`Source(id, title)`). | Queried `self.handbook.search("exam absence")` dynamically and attached `sources=[Source(id=rule.id, title=rule.title)]`. | Ensures information consistency with `data/handbook.json` and provides verified citations to students. |
+| 2 | AI placed keyword matching and regex logic directly inside `service.py` instead of `router.py`. | Violated the `route -> service -> responder` architectural contract. The router must handle intent classification. | Added `EXAM_ABSENCE = "exam_absence"` to `models.py`, added `EXAM_ABSENCE_KEYWORDS` in `router.py`, and dispatched via `AssistantService.handle()`. | Enforces strict separation of concerns and complies with the system architecture. |
+| 3 | AI provided no automated tests and omitted fallback handling if the rule lookup returned `None`. | Missing test coverage for CI/pytest and risk of runtime `AttributeError` if handbook data is altered. | Added graceful fallback handling in `_exam_absence` and implemented unit tests in both `tests/test_router.py` and `tests/test_service.py`. | Ensures 100% test pass rate (49/49 tests) and protects against future regressions. |
+
+### Checklist
+- [x] Interfaces respected? (`route -> service -> responder`)
+- [x] New dependencies? None (uses standard Python library)
+- [x] Secrets? None exposed
+- [x] Logging of user data? None (only structured metadata: intent, latency, session, degraded)
+- [x] Tests added and meaningful? Yes (`test_route_exam_absence` and `test_handle_exam_absence`)
+
+Record the use in `docs/ai-use-log.md`.
