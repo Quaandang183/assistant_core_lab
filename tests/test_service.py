@@ -9,6 +9,12 @@ def test_handle_greeting(service: AssistantService) -> None:
     assert "Hello!" in response.answer
 
 
+def test_handle_help(service: AssistantService) -> None:
+    response = service.handle(Message(text="help"))
+    assert response.intent is Intent.HELP
+    assert "I can help you with" in response.answer
+
+
 def test_handle_fee(service: AssistantService) -> None:
     response = service.handle(Message(text="tuition for 18 credits and 2 retake"))
     assert response.intent is Intent.FEE
