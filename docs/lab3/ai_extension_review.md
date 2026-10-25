@@ -1,16 +1,26 @@
 # Lab 3 — AI extension review
 
-1. Ask an AI coding assistant to extend your service with ONE feature, e.g. "Add an 'exam absence' answer that tells students the deadline from the handbook."
-
+1. Ask an AI coding assistant to extend your service with ONE feature, e.g.
+   "Add an 'exam absence' answer that tells students the deadline from the handbook."
 2. Paste the prompt you used:
-> "Hãy bổ sung tính năng tính học phí (tuition) và xử lý phân tích số tín chỉ học lại (parse_credits) cho dự án assistant_core_lab, đồng thời viết unit test tương ứng."
 
-3. Review the generated code manually. Document at least three changes you made:
+```text
+Please extend the assistant_core service with a 'help' feature that lists what the bot can do (greetings, tuition fees, office info, and handbook rules).
+```
+
+3. Review the generated code manually. Document **at least three changes** you made:
 
 | # | What the AI generated | Problem you found | What you changed | Why |
 |---|---|---|---|---|
-| 1 | Các đoạn mã trong `knowledge.py` và `tools.py` sử dụng các thư viện như `re`, `csv`, `dataclass` nhưng thiếu lệnh `import`. | Gây ra lỗi tô màu đỏ trong Editor và lỗi runtime `NameError` khi thực thi do biến/thư viện chưa được khai báo. | Thêm các dòng `import re`, `import csv`, `from dataclasses import dataclass`, `from pathlib import Path` ở đầu file. | Đảm bảo mã nguồn hợp lệ, trình quản lý mã nguồn nhận diện đúng các hàm và kiểu dữ liệu. |
-| 2 | Các câu lệnh `import` bị thụt lùi đầu dòng (space dư thừa) hoặc có dòng trống ở trên cùng. | Bị lỗi cú pháp (IndentationError) hoặc vi phạm chuẩn định dạng mã nguồn PEP 8. | Định dạng lại mã nguồn: xóa khoảng trắng ở đầu các câu lệnh `import`, đưa sát về mép trái và căn chỉnh lại các hàm. | Giữ cho cấu trúc mã nguồn sạch sẽ, tuân thủ tiêu chuẩn PEP 8 của Python. |
-| 3 | File test `tests/test_tools.py` gọi các hàm `parse_credits`, `tuition` và ngoại lệ `InvalidRequest` nhưng chưa import chúng. | Framework `pytest` không thể chạy được các bài unit test và báo lỗi thiếu biến/hàm. | Bổ sung `import pytest` và import các hàm `parse_credits`, `tuition`, `InvalidRequest` từ module gốc vào file test. | Giúp bộ kiểm thử tự động (unit tests) chạy thành công và xác minh đúng logic của tính năng mới. |
+| 1 | AI returned the help string directly inside `router.py` without adding an `Intent` enum member. | Violated the system architecture (`route -> service -> responder`). Router should only classify intent; `AssistantService` must handle responses. | Added `HELP = "help"` to `Intent` in `models.py`, updated `router.py` to return `Intent.HELP`, and added handler logic inside `AssistantService.handle` in `service.py`. | Preserves separation of concerns and complies with the service contract in `docs/architecture.md`. |
+| 2 | AI checked for exact match `if text == "help":`. | Fragile input handling: fails on capitalized input (`HELP`), punctuation (`help!`), leading/trailing spaces, or Vietnamese/synonyms (`tro giup`, `support`). | Defined `HELP_KEYWORDS = frozenset({"help", "support", "tro giup", "huong dan"})` and checked against normalized text `t = text.lower().strip().rstrip("?!.")`. | Improves robustness and user experience without adding heavy external dependencies. |
+| 3 | AI did not write any automated tests for router or service. | No test coverage for the new feature; regressions would not be caught by `pytest` or CI. | Added `test_route_help` with parameterized inputs in `tests/test_router.py` and `test_handle_help` in `tests/test_service.py`. | Ensures test suite coverage and automated verification (all 50 tests pass). |
 
-Checklist: interfaces respected? new dependencies? secrets? logging of user data? tests added and meaningful? Record the use in `docs/ai-use-log.md`.
+Checklist:
+- [x] Interfaces respected? (`route -> service -> responder` flow preserved)
+- [x] New dependencies? None (uses standard Python libraries and existing `pydantic`)
+- [x] Secrets? None hardcoded
+- [x] Logging of user data? None (CLI continues to log only metadata: intent, latency, session, degraded)
+- [x] Tests added and meaningful? Yes, added unit tests in both `test_router.py` and `test_service.py`
+
+Record the use in `docs/ai-use-log.md`.

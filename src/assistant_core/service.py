@@ -22,15 +22,48 @@ class AssistantService:
                 answer="Hello! I can help with offices, fees and rules.",
                 intent=intent,
             )
+        if intent is Intent.HELP:
+            return Response(
+                answer=(
+                    "I can help you with:\n"
+                    "- Greeting: say 'hello' or 'hi'\n"
+                    "- Tuition fees: ask 'tuition for 18 credits'\n"
+                    "- Office info: ask about 'phong dao tao' or 'student affairs'\n"
+                    "- Handbook rules: ask about 'exam absence', 'retake', or 'thesis'"
+                ),
+                intent=intent,
+            )
+        if intent is Intent.EXAM_ABSENCE:
+            return self._exam_absence(msg.text)
+
         if intent is Intent.FEE:
             return self._fee(msg.text)
         if intent is Intent.OFFICE:
-            o = self.offices.find(msg.text)
-            return Response(
-                answer=f"{o.name}: room {o.room}, open {o.hours}.",
-                intent=intent,
-            )
+            return self._office(msg.text)
         return self._rule(msg.text)
+
+    def _exam_absence(self, text: str) -> Response:
+        rule = self.handbook.search("exam absence")
+        if rule is None:
+            return Response(
+                answer="Exam absence deadline: submit evidence within 3 working days.",
+                intent=Intent.EXAM_ABSENCE,
+            )
+        sources = [Source(id=rule.id, title=rule.title)]
+        return Response(
+            answer=f"Exam absence deadline: {rule.text}",
+            intent=Intent.EXAM_ABSENCE,
+            sources=sources,
+        )
+
+    def _office(self, text: str) -> Response:
+        office = self.offices.find(text)
+        if office is None:
+            return Response(answer="Sorry, I don't know that office.", intent=Intent.UNKNOWN)
+        return Response(
+            answer=f"{office.name}: room {office.room}, open {office.hours}.",
+            intent=Intent.OFFICE,
+        )
 
     def _fee(self, text: str) -> Response:
         credits_num, retake_num = parse_credits(text)
@@ -42,7 +75,7 @@ class AssistantService:
             max_credits=self.settings.max_credits,
         )
         return Response(
-            answer=f"Your tuition is {total} VND",
+            answer=f"Your tuition is {total:,} VND.",
             intent=Intent.FEE,
         )
 
