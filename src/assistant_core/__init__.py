@@ -13,13 +13,13 @@ from assistant_core.errors import (
     ProviderError,
 )
 from assistant_core.models import Intent, Message, Response, Source
-from assistant_core.service import AssistantService
+from assistant_core.service import AssistantService, build_service
 
 __version__ = "0.3.0"
 
 __all__ = [
     "AssistantError",
-    "AssistantService",
+    "AssistantService", "build_service",
     "ConfigError",
     "DataError",
     "Intent",

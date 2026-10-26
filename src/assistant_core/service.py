@@ -102,3 +102,13 @@ class AssistantService:
                 sources=sources,
                 degraded=True,
             )
+
+
+def build_service(settings: Settings) -> AssistantService:
+    from assistant_core.knowledge import Handbook, OfficeDirectory
+    from assistant_core.responder import make_responder
+
+    d = settings.data_dir
+    offices = OfficeDirectory.from_csv(d / "offices.csv")
+    handbook = Handbook.from_json(d / "handbook.json")
+    return AssistantService(settings, offices, handbook, make_responder(settings.llm_provider))
