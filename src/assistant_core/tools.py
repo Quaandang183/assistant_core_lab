@@ -1,4 +1,3 @@
-
 import re
 
 from assistant_core.errors import InvalidRequest

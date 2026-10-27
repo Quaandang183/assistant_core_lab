@@ -21,6 +21,22 @@ def test_route_greeting(router_module, intent_type, office_names, text):
 @pytest.mark.parametrize(
     "text",
     [
+        "help",
+        "HELP",
+        "  help  ",
+        "help!",
+        "tro giup",
+        "support",
+        "huong dan?!.",
+    ],
+)
+def test_route_help(router_module, intent_type, office_names, text):
+    assert router_module.route(text, office_names) is intent_type.HELP
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
         "exam absence",
         "EXAM ABSENCE",
         "What is the deadline for exam absence?",
@@ -31,6 +47,7 @@ def test_route_greeting(router_module, intent_type, office_names, text):
 )
 def test_route_exam_absence(router_module, intent_type, office_names, text):
     assert router_module.route(text, office_names) is intent_type.EXAM_ABSENCE
+
 
 
 @pytest.mark.parametrize(

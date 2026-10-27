@@ -76,14 +76,11 @@ def create_app(
         item = FeedbackOut(**fb.model_dump(), id=len(feedback_store) + 1, created_at=datetime.now(timezone.utc))
         feedback_store.append(item)
         return item
-        raise NotImplementedError("T2")
 
     @app.get("/v1/feedback", response_model=list[FeedbackOut], tags=["feedback"], dependencies=[Depends(require_admin)])
     def list_feedback() -> list[FeedbackOut]:
-        # TODO T3 (1 line): 
+        # TODO T3 (1 line): return the list. The API-key check is already done by `require_admin` above.
         return feedback_store
-        raise NotImplementedError("T3")
-
     @app.get("/v1/weather", response_model=Weather, tags=["external"], responses={503: {"model": ErrorResponse}})
     def campus_weather() -> Weather:
         # TODO T4 (4 lines): call weather.current() inside try/except.
