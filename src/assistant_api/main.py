@@ -19,6 +19,8 @@ from assistant_api.schemas import ChatRequest, ChatResponse, ErrorResponse, Feed
 from assistant_api.weather import ExternalServiceError, WeatherClient
 from assistant_core import AssistantService, Message, build_service
 from assistant_core.config import Settings, load_settings
+from assistant_core.errors import InvalidRequest
+from assistant_core.models import Intent
 
 
 def create_app(
@@ -64,11 +66,13 @@ def create_app(
         responses={422: {"model": ErrorResponse}, 429: {"model": ErrorResponse}},
     )
     def chat(req: ChatRequest, request: Request) -> ChatResponse:
-        # BONUS: rate limiting (see tutorial Part F). Leave it for later.
-        # TODO T1 (2 lines):
-        #   1. resp = service.handle(Message(text=req.message, session_id=req.session_id))
-        #   2. return ChatResponse(**resp.model_dump(), request_id=uuid.uuid4().hex[:12])
-        raise NotImplementedError("T1")
+        # T1: ask the Lab 3 service and return its answer with a new request_id
+        try:
+            resp = service.handle(Message(text=req.message, session_id=req.session_id))
+        except InvalidRequest as exc:
+            resp_data = {"answer": str(exc), "intent": Intent.FEE}
+            return ChatResponse(**resp_data, request_id=uuid.uuid4().hex[:12])
+        return ChatResponse(**resp.model_dump(), request_id=uuid.uuid4().hex[:12])
 
     @app.post("/v1/feedback", response_model=FeedbackOut, status_code=201, tags=["feedback"])
     def add_feedback(fb: FeedbackIn) -> FeedbackOut:
