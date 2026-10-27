@@ -66,16 +66,10 @@ def create_app(
         responses={422: {"model": ErrorResponse}, 429: {"model": ErrorResponse}},
     )
     def chat(req: ChatRequest, request: Request) -> ChatResponse:
-        # BONUS (Part F): rate limiting per client address
-        client = request.client.host if request.client else "unknown"
-        if not limiter.allow(client):
-            raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many requests")
-
         # T1: ask the Lab 3 service and return its answer with a new request_id
         try:
             resp = service.handle(Message(text=req.message, session_id=req.session_id))
         except InvalidRequest as exc:
-            # e.g. a fee question without credits: a normal chat answer, not a server error
             resp_data = {"answer": str(exc), "intent": Intent.FEE}
             return ChatResponse(**resp_data, request_id=uuid.uuid4().hex[:12])
         return ChatResponse(**resp.model_dump(), request_id=uuid.uuid4().hex[:12])
