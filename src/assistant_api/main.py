@@ -86,40 +86,10 @@ def create_app(
 
     @app.get("/v1/weather", response_model=Weather, tags=["external"], responses={503: {"model": ErrorResponse}})
     def campus_weather() -> Weather:
-        # TODO T4 (4 lines): call weather.current() inside try/except.
-        #   If ExternalServiceError happens, raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
-        #   "Weather service unavailable") from None
-        raise NotImplementedError("T4")
-
-    return app
-=======
-        resp = service.handle(Message(text=req.message, session_id=req.session_id))
-        return ChatResponse(**resp.model_dump(), request_id=uuid.uuid4().hex[:12])
-
-    @app.post("/v1/feedback", response_model=FeedbackOut, status_code=201, tags=["feedback"])
-    def add_feedback(fb: FeedbackIn) -> FeedbackOut:
-        item = FeedbackOut(**fb.model_dump(), id=len(feedback_store) + 1, created_at=datetime.now(timezone.utc))
-        feedback_store.append(item)
-        return item
-
-    @app.get("/v1/feedback", response_model=list[FeedbackOut], tags=["feedback"], dependencies=[Depends(require_admin)])
-    def list_feedback() -> list[FeedbackOut]:
-        return feedback_store
-
-    @app.get("/v1/weather", response_model=Weather, tags=["external"], responses={503: {"model": ErrorResponse}})
-    def campus_weather() -> Weather:
-        # Task T4
+        # T4: turn "the weather site is down" into a clean 503
         try:
             return weather.current()
         except ExternalServiceError:
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE, "Weather service unavailable"
-            ) from None
-
-    # Endpoint H1 (Bước 3)
-    @app.get("/v1/offices")
-    def get_offices():
-        return [o.__dict__ for o in service.offices.all()]
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Weather service unavailable") from None
 
     return app
->>>>>>> f603765 (TV4)
