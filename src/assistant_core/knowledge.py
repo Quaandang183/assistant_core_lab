@@ -46,7 +46,6 @@ class OfficeDirectory:
         return next((o for name, o in self._offices.items() if name in t), None)
 
 
-
 @dataclass(frozen=True)
 class Rule:
     id: str
