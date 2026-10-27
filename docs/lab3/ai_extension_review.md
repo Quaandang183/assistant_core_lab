@@ -1,10 +1,26 @@
-1. "Add an 'exam absence' answer that tells students the deadline from the handbook."
-2. > "Add a 'help' feature to the assistant_core service. When the user asks 'help' or 'what can you do', the bot should return a list of supported features. Update router.py, models.py, and service.py accordingly."
+# Lab 3 — AI extension review
 
-3. 
+1. Ask an AI coding assistant to extend your service with ONE feature, e.g.
+   "Add an 'exam absence' answer that tells students the deadline from the handbook."
+2. Paste the prompt you used:
+
+```text
+Please extend the assistant_core service with a 'help' feature that lists what the bot can do (greetings, tuition fees, office info, and handbook rules).
+```
+
+3. Review the generated code manually. Document **at least three changes** you made:
 
 | # | What the AI generated | Problem you found | What you changed | Why |
 |---|---|---|---|---|
-| 1 | `log.info(f"User sent: {msg.text}")` inside the `handle()` function to debug the help request. | Logged the full raw user message, violating the requirement to prevent logging of user data. | Removed the logging statement completely and relied on the existing structured JSON logger which only logs the `intent`[cite: 23]. | To ensure data privacy and prevent leaking raw user input into the system logs. |
-| 2 | `answer="I can help with greetings, fees, offices, rules."` hardcoded in `service.py`. | Magic string. If a new intent is added later, this string must be manually tracked and updated. | Generated the list of capabilities dynamically by iterating over the `Intent` enum values (excluding `UNKNOWN`). | Improves maintainability, ensures a single source of truth, and respects the boundaries of the data models. |
-| 3 | Provided the implementation logic but no test cases for `router.py` or `service.py`. | Incomplete feature; missing tests violate the quality gates and the requirement for meaningful tests[cite: 23]. | Added `test_route_help()` in `test_router.py` and a characterization test in `test_service.py` to verify the routing behavior. | Ensures the new routing logic is deterministic, testable offline, and protected against future regressions[cite: 23]. |
+| 1 | AI returned the help string directly inside `router.py` without adding an `Intent` enum member. | Violated the system architecture (`route -> service -> responder`). Router should only classify intent; `AssistantService` must handle responses. | Added `HELP = "help"` to `Intent` in `models.py`, updated `router.py` to return `Intent.HELP`, and added handler logic inside `AssistantService.handle` in `service.py`. | Preserves separation of concerns and complies with the service contract in `docs/architecture.md`. |
+| 2 | AI checked for exact match `if text == "help":`. | Fragile input handling: fails on capitalized input (`HELP`), punctuation (`help!`), leading/trailing spaces, or Vietnamese/synonyms (`tro giup`, `support`). | Defined `HELP_KEYWORDS = frozenset({"help", "support", "tro giup", "huong dan"})` and checked against normalized text `t = text.lower().strip().rstrip("?!.")`. | Improves robustness and user experience without adding heavy external dependencies. |
+| 3 | AI did not write any automated tests for router or service. | No test coverage for the new feature; regressions would not be caught by `pytest` or CI. | Added `test_route_help` with parameterized inputs in `tests/test_router.py` and `test_handle_help` in `tests/test_service.py`. | Ensures test suite coverage and automated verification (all 50 tests pass). |
+
+Checklist:
+- [x] Interfaces respected? (`route -> service -> responder` flow preserved)
+- [x] New dependencies? None (uses standard Python libraries and existing `pydantic`)
+- [x] Secrets? None hardcoded
+- [x] Logging of user data? None (CLI continues to log only metadata: intent, latency, session, degraded)
+- [x] Tests added and meaningful? Yes, added unit tests in both `test_router.py` and `test_service.py`
+
+Record the use in `docs/ai-use-log.md`.

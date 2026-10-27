@@ -47,3 +47,21 @@ def intent_type(module_prefix):
 @pytest.fixture
 def office_names():
     return {"phong dao tao", "student affairs"}
+
+
+@pytest.fixture
+def settings():
+    from assistant_core.config import Settings
+
+    return Settings(data_dir=ROOT / "data")
+
+
+@pytest.fixture
+def service(settings):
+    from assistant_core.knowledge import Handbook, OfficeDirectory
+    from assistant_core.responder import StubLLMResponder
+    from assistant_core.service import AssistantService
+
+    offices = OfficeDirectory.from_csv(settings.data_dir / "offices.csv")
+    handbook = Handbook.from_json(settings.data_dir / "handbook.json")
+    return AssistantService(settings, offices, handbook, StubLLMResponder())
