@@ -14,6 +14,7 @@ from assistant_core.errors import (
 )
 from assistant_core.models import Intent, Message, Response, Source
 from assistant_core.service import AssistantService
+from assistant_core.__main__ import build_service
 
 __version__ = "0.3.0"
 
