@@ -45,9 +45,6 @@ class OfficeDirectory:
         t = text.lower()
         return next((o for name, o in self._offices.items() if name in t), None)
 
-    def all(self) -> list[Office]:
-        """Return all Office objects as a list, sorted by name (Homework H1)."""
-        return sorted(self._offices.values(), key=lambda o: o.name)
 
 
 @dataclass(frozen=True)
