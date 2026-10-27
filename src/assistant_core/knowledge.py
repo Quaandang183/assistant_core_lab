@@ -45,10 +45,6 @@ class OfficeDirectory:
         t = text.lower()
         return next((o for name, o in self._offices.items() if name in t), None)
 
-    def all(self) -> list[Office]:
-        """Trả về toàn bộ danh sách đối tượng Office sắp xếp theo tên."""
-        return sorted(self._offices.values(), key=lambda office: office.name)
-
 
 @dataclass(frozen=True)
 class Rule:
