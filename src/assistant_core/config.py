@@ -20,6 +20,10 @@ class Settings(BaseModel):
     weather_url: str = "https://api.open-meteo.com/v1/forecast"
     weather_timeout_s: float = 3.0
     campus_lat: float = 10.7626  # University of Science, HCMC (Nguyen Van Cu campus)
+    api_admin_key: str | None = None
+    weather_url: str = "https://api.open-meteo.com/v1/forecast"
+    weather_timeout_s: float = 3.0
+    campus_lat: float = 10.7626
     campus_lon: float = 106.6822
     rate_limit_per_min: int = 30
 

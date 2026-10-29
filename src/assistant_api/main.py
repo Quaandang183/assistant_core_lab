@@ -19,6 +19,8 @@ from assistant_api.schemas import ChatRequest, ChatResponse, ErrorResponse, Feed
 from assistant_api.weather import ExternalServiceError, WeatherClient
 from assistant_core import AssistantService, Message, build_service
 from assistant_core.config import Settings, load_settings
+from assistant_core.errors import InvalidRequest
+from assistant_core.models import Intent
 
 
 def create_app(
@@ -64,36 +66,12 @@ def create_app(
         responses={422: {"model": ErrorResponse}, 429: {"model": ErrorResponse}},
     )
     def chat(req: ChatRequest, request: Request) -> ChatResponse:
-<<<<<<< HEAD
-        # BONUS: rate limiting (see tutorial Part F). Leave it for later.
-        # TODO T1 (2 lines):
-        #   1. resp = service.handle(Message(text=req.message, session_id=req.session_id))
-        #   2. return ChatResponse(**resp.model_dump(), request_id=uuid.uuid4().hex[:12])
-        raise NotImplementedError("T1")
-
-    @app.post("/v1/feedback", response_model=FeedbackOut, status_code=201, tags=["feedback"])
-    def add_feedback(fb: FeedbackIn) -> FeedbackOut:
-        # TODO T2 (3 lines):
-        #   1. item = FeedbackOut(**fb.model_dump(), id=len(feedback_store) + 1, created_at=datetime.now(timezone.utc))
-        #   2. add item to feedback_store
-        #   3. return item
-        raise NotImplementedError("T2")
-
-    @app.get("/v1/feedback", response_model=list[FeedbackOut], tags=["feedback"], dependencies=[Depends(require_admin)])
-    def list_feedback() -> list[FeedbackOut]:
-        # TODO T3 (1 line): return the list. The API-key check is already done by `require_admin` above.
-        raise NotImplementedError("T3")
-
-    @app.get("/v1/weather", response_model=Weather, tags=["external"], responses={503: {"model": ErrorResponse}})
-    def campus_weather() -> Weather:
-        # TODO T4 (4 lines): call weather.current() inside try/except.
-        #   If ExternalServiceError happens, raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
-        #   "Weather service unavailable") from None
-        raise NotImplementedError("T4")
-
-    return app
-=======
-        resp = service.handle(Message(text=req.message, session_id=req.session_id))
+        # T1: ask the Lab 3 service and return its answer with a new request_id
+        try:
+            resp = service.handle(Message(text=req.message, session_id=req.session_id))
+        except InvalidRequest as exc:
+            resp_data = {"answer": str(exc), "intent": Intent.FEE}
+            return ChatResponse(**resp_data, request_id=uuid.uuid4().hex[:12])
         return ChatResponse(**resp.model_dump(), request_id=uuid.uuid4().hex[:12])
 
     @app.post("/v1/feedback", response_model=FeedbackOut, status_code=201, tags=["feedback"])
@@ -105,21 +83,13 @@ def create_app(
     @app.get("/v1/feedback", response_model=list[FeedbackOut], tags=["feedback"], dependencies=[Depends(require_admin)])
     def list_feedback() -> list[FeedbackOut]:
         return feedback_store
-
+        
     @app.get("/v1/weather", response_model=Weather, tags=["external"], responses={503: {"model": ErrorResponse}})
     def campus_weather() -> Weather:
-        # Task T4
+        # T4: turn "the weather site is down" into a clean 503
         try:
             return weather.current()
         except ExternalServiceError:
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE, "Weather service unavailable"
-            ) from None
-
-    # Endpoint H1 (Bước 3)
-    @app.get("/v1/offices")
-    def get_offices():
-        return [o.__dict__ for o in service.offices.all()]
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Weather service unavailable") from None
 
     return app
->>>>>>> f603765 (TV4)
