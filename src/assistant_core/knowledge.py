@@ -41,6 +41,10 @@ class OfficeDirectory:
     def names(self) -> set[str]:
         return set(self._offices)
 
+    def all(self) -> list[Office]:
+        """All offices, sorted by name (used by GET /v1/offices)."""
+        return sorted(self._offices.values(), key=lambda o: o.name)
+
     def find(self, text: str) -> Office | None:
         t = text.lower()
         return next((o for name, o in self._offices.items() if name in t), None)

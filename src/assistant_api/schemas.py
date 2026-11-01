@@ -41,6 +41,12 @@ class Weather(BaseModel):
     stale: bool = False  # True when served from cache after an upstream failure
 
 
+class OfficeOut(BaseModel):
+    name: str
+    room: str
+    hours: str
+
+
 class ErrorBody(BaseModel):
     code: str
     message: str
