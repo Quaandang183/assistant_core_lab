@@ -1,8 +1,10 @@
 import logging
 
-from assistant_core.errors import ProviderError
+from assistant_core.config import Settings
+from assistant_core.errors import ConfigError, ProviderError
+from assistant_core.knowledge import Handbook, OfficeDirectory
 from assistant_core.models import Intent, Message, Response, Source
-from assistant_core.responder import TemplateResponder
+from assistant_core.responder import StubLLMResponder, TemplateResponder
 from assistant_core.router import route
 from assistant_core.tools import parse_credits, tuition
 
@@ -102,3 +104,16 @@ class AssistantService:
                 sources=sources,
                 degraded=True,
             )
+
+
+def build_service(settings: Settings) -> AssistantService:
+    """Wire the dependencies together (shared by the CLI and the FastAPI app)."""
+    offices = OfficeDirectory.from_csv(settings.data_dir / "offices.csv")
+    handbook = Handbook.from_json(settings.data_dir / "handbook.json")
+
+    if settings.llm_provider != "stub":
+        # Add a real provider class here; the service stays unchanged.
+        raise ConfigError(f"unsupported LLM_PROVIDER={settings.llm_provider!r} (only 'stub' for now)")
+    responder = StubLLMResponder()
+
+    return AssistantService(settings, offices, handbook, responder)
