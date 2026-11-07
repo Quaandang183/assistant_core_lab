@@ -53,7 +53,7 @@ def office_names():
 def settings():
     from assistant_core.config import Settings
 
-    return Settings(data_dir=ROOT / "data")
+    return Settings(data_dir=ROOT / "data", database_url="sqlite://")  # in-memory: tests never create assistant.db
 
 
 @pytest.fixture
