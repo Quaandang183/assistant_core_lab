@@ -1,23 +1,23 @@
-# Worksheet: Phân tích & Đánh giá Data Model (Lab 5)
+# Worksheet: Data Model Analysis & Evaluation (Lab 5)
 
-## Nhiệm vụ H3 (Bonus): Phân tích thiết kế bảng trong `bad_schema.sql`
+## Task H3 (Bonus): Analyzing Table Design in `bad_schema.sql`
 
-Bảng `chats` trong file `bad_schema.sql` gặp nhiều lỗi thiết kế cơ bản về chuẩn hóa dữ liệu, hiệu năng và tính toàn vẹn. Dưới đây là 3 vấn đề tiêu biểu và giải pháp khắc phục dựa trên thiết kế của bài lab.
+The `chats` table in the `bad_schema.sql` file suffers from several basic design flaws regarding data normalization, performance, and integrity. Below are 3 typical issues and their solutions based on the lab's design.
 
 ---
 
-### Vấn đề 1: Dư thừa dữ liệu và Vi phạm Chuẩn hóa (Redundancy & Update Anomaly)
+### Issue 1: Data Redundancy and Normalization Violation (Redundancy & Update Anomaly)
 
-* **Hiện trạng:**
-  Hai cột `student_name` và `student_phone` được lưu trực tiếp trên từng bản ghi tin nhắn. 
+- **Current State:**
+  The `student_name` and `student_phone` columns are stored directly on every message record.
 
-* **Hậu quả:**
-  Lãng phí dung lượng và gây nguy cơ bất nhất dữ liệu (Update Anomaly). Nếu sinh viên đổi số điện thoại, hệ thống phải cập nhật trên tất cả các dòng tin nhắn cũ; nếu sót sẽ dẫn đến dữ liệu sai lệch.
+- **Consequences:**
+  Wastes storage space and creates a risk of data inconsistency (Update Anomaly). If a student changes their phone number, the system must update it across all previous message rows; if any are missed, it leads to data discrepancies.
 
-* **Cách khắc phục:**
-  Tách thực thể sinh viên ra một bảng độc lập. Trong bảng `chats` chỉ lưu khóa ngoại `student_id`.
+- **Solution:**
+  Separate the student entity into an independent table. In the `chats` table, only store the `student_id` foreign key.
 
-**Minh họa thiết kế mới:**
+**New Design Illustration:**
 ```sql
 CREATE TABLE students (
     id INTEGER PRIMARY KEY,
@@ -27,7 +27,7 @@ CREATE TABLE students (
 
 CREATE TABLE chats (
     id INTEGER PRIMARY KEY,
-    student_id INTEGER, -- Khóa ngoại tham chiếu bảng students
+    student_id INTEGER, -- Foreign key referencing the students table
     message TEXT,
     ...
 );
@@ -35,52 +35,52 @@ CREATE TABLE chats (
 
 ---
 
-### Vấn đề 2: Vi phạm Dạng chuẩn 1 (1NF) - Dữ liệu không nguyên tử
+### Issue 2: First Normal Form (1NF) Violation - Non-atomic Data
 
-* **Hiện trạng:**
-  Cột `feedback TEXT` lưu danh sách các giá trị đánh giá được phân cách bằng dấu phẩy (ví dụ: `'1,-1,1'`).
+- **Current State:**
+  The `feedback TEXT` column stores a list of rating values separated by commas (e.g., `'1,-1,1'`).
 
-* **Hậu quả:**
-  Vi phạm Dạng chuẩn 1 (1NF) vì một ô chứa nhiều giá trị. Không thể sử dụng trực tiếp các hàm tổng hợp như `AVG()`, `COUNT()` trong SQL để tính điểm, và tìm kiếm sẽ rất chậm.
+- **Consequences:**
+  Violates First Normal Form (1NF) because a single cell contains multiple values. SQL aggregate functions like `AVG()` and `COUNT()` cannot be used directly to calculate scores, and searching will be extremely slow.
 
-* **Cách khắc phục:**
-  Tách dữ liệu đánh giá ra một bảng riêng biệt. Mỗi lượt phản hồi là một dòng liên kết với `chat_id`.
+- **Solution:**
+  Separate the feedback data into a distinct table. Each feedback entry becomes a row linked to the `chat_id`.
 
-**Minh họa thiết kế mới:**
+**New Design Illustration:**
 ```sql
 CREATE TABLE feedbacks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    chat_id INTEGER, -- Khóa ngoại tham chiếu bảng chats
-    rating INTEGER,  -- 1, 0, hoặc -1
+    chat_id INTEGER, -- Foreign key referencing the chats table
+    rating INTEGER,  -- 1, 0, or -1
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
 ---
 
-### Vấn đề 3: Sai kiểu dữ liệu, Thiếu ràng buộc và Lưu trữ đơn vị trong giá trị
+### Issue 3: Incorrect Data Types, Missing Constraints, and Storing Units within Values
 
-* **Hiện trạng:**
-  - Thiếu `PRIMARY KEY` cho cột `id`.
-  - Cột `time TEXT` lưu chuỗi ngày giờ định dạng tự do (`'5/10/2026 9:03 PM'`).
-  - Cột `latency TEXT` lưu cả giá trị và đơn vị đo lường (`'120ms'`).
+- **Current State:**
+  - Missing `PRIMARY KEY` for the `id` column.
+  - The `time TEXT` column stores free-format date/time strings (`'5/10/2026 9:03 PM'`).
+  - The `latency TEXT` column stores both the value and the unit of measurement (`'120ms'`).
 
-* **Hậu quả:**
-  - Mất tính duy nhất của bản ghi.
-  - Chuỗi thời gian không theo chuẩn ISO khiến việc sắp xếp (`ORDER BY`) hay lọc (`BETWEEN`) bị sai.
-  - Cột `latency` chứa chữ "ms" làm mất khả năng thực hiện phép toán thống kê (min, max, avg).
+- **Consequences:**
+  - Loss of record uniqueness.
+  - Non-ISO standard time strings cause incorrect sorting (`ORDER BY`) or filtering (`BETWEEN`).
+  - The `latency` column contains the text "ms", making statistical calculations (min, max, avg) impossible.
 
-* **Cách khắc phục:**
-  - Thêm `PRIMARY KEY`.
-  - Sử dụng `TIMESTAMP` hoặc `DATETIME` theo chuẩn ISO 8601.
-  - Đổi kiểu `latency` thành `INTEGER` để lưu giá trị số (miligiây).
+- **Solution:**
+  - Add a `PRIMARY KEY`.
+  - Use `TIMESTAMP` or `DATETIME` following the ISO 8601 standard.
+  - Change the `latency` data type to `INTEGER` to store numerical values (milliseconds).
 
-**Minh họa thiết kế mới:**
+**New Design Illustration:**
 ```sql
 CREATE TABLE chats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ...
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    latency_ms INTEGER -- Lưu dạng số nguyên, vd: 120
+    latency_ms INTEGER -- Store as an integer, e.g., 120
 );
 ```
