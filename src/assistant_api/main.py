@@ -1,18 +1,20 @@
-"""FastAPI application - Lab 4.  Run:  uvicorn assistant_api.main:create_app --factory --reload
+"""FastAPI application - Lab 5.  Run:  uvicorn assistant_api.main:create_app --factory --reload
 
 Endpoints (v1): GET /health, POST /v1/chat, POST /v1/feedback, GET /v1/feedback (admin),
-GET /v1/weather, GET /v1/offices (homework H1).
+GET /v1/stats/intents (admin), GET /v1/weather, GET /v1/offices (homework H1).
+Interactions and feedback are stored in a database (see assistant_api/db.py).
 """
 
 from __future__ import annotations
 
+import time
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from assistant_api.db import Repository, init_db, make_engine
 from assistant_api.ratelimit import RateLimiter
 from assistant_api.schemas import (
     ChatRequest,
@@ -31,7 +33,10 @@ from assistant_core.models import Intent
 
 
 def create_app(
-    settings: Settings | None = None, service: AssistantService | None = None, weather: WeatherClient | None = None
+    settings: Settings | None = None,
+    service: AssistantService | None = None,
+    weather: WeatherClient | None = None,
+    repo: Repository | None = None,
 ) -> FastAPI:
     settings = settings or load_settings()
     service = service or build_service(settings)
@@ -39,7 +44,10 @@ def create_app(
         settings.weather_url, settings.campus_lat, settings.campus_lon, timeout_s=settings.weather_timeout_s
     )
     limiter = RateLimiter(settings.rate_limit_per_min)
-    feedback_store: list[FeedbackOut] = []  # Lab 5 replaces this with a database
+    if repo is None:
+        engine = make_engine(settings.database_url)
+        init_db(engine)
+        repo = Repository(engine, settings.session_salt)
 
     app = FastAPI(
         title="Study Assistant API", version="1.0.0", description="Backend of the CSC10014 Smart Virtual Assistant."
@@ -79,25 +87,53 @@ def create_app(
             raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many requests")
 
         # T1: ask the Lab 3 service and return its answer with a new request_id
+        start = time.perf_counter()
+        request_id = uuid.uuid4().hex[:12]
+
+        def elapsed_ms() -> float:
+            return round((time.perf_counter() - start) * 1000, 2)
+
         try:
             resp = service.handle(Message(text=req.message, session_id=req.session_id))
         except InvalidRequest as exc:
             # e.g. a fee question without credits: a normal chat answer, not a server error
-            resp_data = {"answer": str(exc), "intent": Intent.FEE}
-            return ChatResponse(**resp_data, request_id=uuid.uuid4().hex[:12])
-        return ChatResponse(**resp.model_dump(), request_id=uuid.uuid4().hex[:12])
+            repo.record_interaction(req.session_id, request_id, Intent.FEE.value, None, False, False, elapsed_ms())
+            return ChatResponse(answer=str(exc), intent=Intent.FEE, request_id=request_id)
 
-    @app.post("/v1/feedback", response_model=FeedbackOut, status_code=201, tags=["feedback"])
+        # Lab 5: remember metadata only (intent, topic, outcome, latency) - never the message text
+        repo.record_interaction(
+            req.session_id,
+            request_id,
+            resp.intent.value,
+            topic=resp.sources[0].id if resp.sources else None,
+            resolved=resp.intent.value != "unknown",
+            degraded=resp.degraded,
+            latency_ms=elapsed_ms(),
+        )
+        return ChatResponse(**resp.model_dump(), request_id=request_id)
+
+    @app.post(
+        "/v1/feedback",
+        response_model=FeedbackOut,
+        status_code=201,
+        tags=["feedback"],
+        responses={404: {"model": ErrorResponse}},
+    )
     def add_feedback(fb: FeedbackIn) -> FeedbackOut:
-        # T2: store the feedback in memory and return it (201 Created)
-        item = FeedbackOut(**fb.model_dump(), id=len(feedback_store) + 1, created_at=datetime.now(timezone.utc))
-        feedback_store.append(item)
-        return item
+        # T2 + R1: save the feedback in the database (201 Created); feedback about an unknown answer is a 404
+        saved = repo.add_feedback(fb.request_id, fb.rating, fb.comment)
+        if saved is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown request id")
+        return FeedbackOut.model_validate(saved, from_attributes=True)
 
     @app.get("/v1/feedback", response_model=list[FeedbackOut], tags=["feedback"], dependencies=[Depends(require_admin)])
-    def list_feedback() -> list[FeedbackOut]:
-        # T3: the API-key check is done by `require_admin` above
-        return feedback_store
+    def list_feedback(limit: int = 100) -> list[FeedbackOut]:
+        # T3 + R2: the API-key check is done by `require_admin` above; newest feedback first
+        return [FeedbackOut.model_validate(f, from_attributes=True) for f in repo.list_feedback(limit)]
+
+    @app.get("/v1/stats/intents", tags=["stats"], dependencies=[Depends(require_admin)])
+    def intent_stats() -> list[dict]:
+        return repo.intent_stats()
 
     @app.get("/v1/weather", response_model=Weather, tags=["external"], responses={503: {"model": ErrorResponse}})
     def campus_weather() -> Weather:

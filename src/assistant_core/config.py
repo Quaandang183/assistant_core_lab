@@ -20,12 +20,11 @@ class Settings(BaseModel):
     weather_url: str = "https://api.open-meteo.com/v1/forecast"
     weather_timeout_s: float = 3.0
     campus_lat: float = 10.7626  # University of Science, HCMC (Nguyen Van Cu campus)
-    api_admin_key: str | None = None
-    weather_url: str = "https://api.open-meteo.com/v1/forecast"
-    weather_timeout_s: float = 3.0
-    campus_lat: float = 10.7626
     campus_lon: float = 106.6822
     rate_limit_per_min: int = 30
+    # Lab 5 - persistence
+    database_url: str = "sqlite:///assistant.db"
+    session_salt: str = Field(default="dev-salt", repr=False)  # secret salt for hashing session ids
 
 
 def load_settings(env_file: str | None = ".env") -> Settings:
@@ -47,6 +46,8 @@ def load_settings(env_file: str | None = ".env") -> Settings:
             campus_lat=float(os.getenv("CAMPUS_LAT", "10.7626")),
             campus_lon=float(os.getenv("CAMPUS_LON", "106.6822")),
             rate_limit_per_min=int(os.getenv("RATE_LIMIT_PER_MIN", "30")),
+            database_url=os.getenv("DATABASE_URL", "sqlite:///assistant.db"),
+            session_salt=os.getenv("SESSION_SALT", "dev-salt"),
         )
     except ValueError as exc:
         raise ConfigError(f"invalid configuration value: {exc}") from exc
