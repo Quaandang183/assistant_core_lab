@@ -106,12 +106,15 @@ class Repository:
             fb = Feedback(request_id=request_id, rating=rating, comment=comment)
             db.add(fb)
             db.commit()
-            db.refresh(fb)
+            db.refresh(fb)  # load the id the database just gave it
             return fb
 
     def list_feedback(self, limit: int = 100) -> list[Feedback]:
         with Session(self.engine) as db:
-            return list(db.exec(select(Feedback).order_by(Feedback.created_at.desc()).limit(limit)))
+            # SELECT * FROM feedback ORDER BY created_at DESC, id DESC LIMIT ?
+            # (id breaks ties when two rows are saved in the same clock tick)
+            query = select(Feedback).order_by(Feedback.created_at.desc(), Feedback.id.desc()).limit(limit)
+            return list(db.exec(query))
 
     def intent_stats(self) -> list[dict]:
         """Requests, average latency and unresolved rate per intent."""
