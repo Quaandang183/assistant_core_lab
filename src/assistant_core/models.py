@@ -26,5 +26,8 @@ class Source(BaseModel):
 class Response(BaseModel):
     answer: str
     intent: Intent
-    sources: list[Source] = []
+    sources: list[Source] = Field(default_factory=list)
     degraded: bool = False
+    path: str = "deterministic"
+    escalate: bool = False
+    confidence: float | None = None
