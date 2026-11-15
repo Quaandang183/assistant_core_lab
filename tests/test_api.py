@@ -2,6 +2,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+from assistant_api.db import Repository, init_db, make_engine
 from assistant_api.main import create_app
 from assistant_api.weather import WeatherClient
 
@@ -14,9 +15,16 @@ def weather_with(handler) -> WeatherClient:
 
 
 @pytest.fixture
-def client(settings, service):
+def repo():
+    engine = make_engine("sqlite://")
+    init_db(engine)
+    return Repository(engine, "test-salt")
+
+
+@pytest.fixture
+def client(settings, service, repo):
     settings = settings.model_copy(update={"api_admin_key": "secret-admin", "rate_limit_per_min": 5})
-    app = create_app(settings, service, weather_with(lambda req: httpx.Response(200, json=OK_JSON)))
+    app = create_app(settings, service, weather_with(lambda req: httpx.Response(200, json=OK_JSON)), repo)
     return TestClient(app)
 
 
@@ -43,11 +51,17 @@ def test_rate_limit(client):
 
 
 def test_feedback_roundtrip(client):
-    r = client.post("/v1/feedback", json={"request_id": "abc123", "rating": 1})
+    rid = client.post("/v1/chat", json={"message": "hi"}).json()["request_id"]
+    r = client.post("/v1/feedback", json={"request_id": rid, "rating": 1})
     assert r.status_code == 201 and r.json()["id"] == 1
     assert client.get("/v1/feedback").status_code == 401
     listed = client.get("/v1/feedback", headers={"X-API-Key": "secret-admin"})
     assert listed.status_code == 200 and len(listed.json()) == 1
+
+
+def test_feedback_for_unknown_request_id_is_404(client):
+    r = client.post("/v1/feedback", json={"request_id": "nope", "rating": 1})
+    assert r.status_code == 404 and r.json()["error"]["code"] == "unknown_request_id"
 
 
 def test_feedback_rating_out_of_range(client):

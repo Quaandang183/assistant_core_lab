@@ -16,30 +16,15 @@ from collections.abc import Sequence
 
 from pydantic import ValidationError
 
-from assistant_core.config import Settings, load_settings
-from assistant_core.errors import AssistantError, ConfigError, InvalidRequest
-from assistant_core.knowledge import Handbook, OfficeDirectory
+from assistant_core.config import load_settings
+from assistant_core.errors import AssistantError, InvalidRequest
 from assistant_core.logging_setup import setup_logging
 from assistant_core.models import Message
-from assistant_core.responder import StubLLMResponder
-from assistant_core.service import AssistantService
+from assistant_core.service import AssistantService, build_service
 
 log = logging.getLogger("assistant_core")
 
 EXIT_WORDS = frozenset({"exit", "quit", "q"})
-
-
-def build_service(settings: Settings) -> AssistantService:
-    """Wire the dependencies together (the only place that knows the concrete classes)."""
-    offices = OfficeDirectory.from_csv(settings.data_dir / "offices.csv")
-    handbook = Handbook.from_json(settings.data_dir / "handbook.json")
-
-    if settings.llm_provider != "stub":
-        # Week 4: add a real provider class here; the service stays unchanged.
-        raise ConfigError(f"unsupported LLM_PROVIDER={settings.llm_provider!r} (only 'stub' for now)")
-    responder = StubLLMResponder()
-
-    return AssistantService(settings, offices, handbook, responder)
 
 
 def ask(service: AssistantService, text: str, session_id: str) -> int:
