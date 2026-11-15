@@ -37,7 +37,7 @@ Among the five new test questions, `E21` ("how many books can I borrow from the 
 
 Asking a standard LLM directly is like a closed-book exam where the model answers from memory and may confidently invent rules or numbers when unsure. RAG (Retrieval-Augmented Generation) turns this into an open-book exam: our search code first retrieves the most relevant paragraph from the official faculty documents, hands it to the model, and instructs it to answer strictly from that text. Because we still cannot trust the model blindly, our Python code performs a strict grounding check (`set(draft.source_ids) <= allowed_ids`) to verify that every cited source ID was actually retrieved rather than fabricated. Additionally, our code checks whether the search score meets the minimum threshold (`min_score`) before calling the model, forcing an honest "I don't know" refusal when no relevant document is found.
 
-## H3 (bonus) — not applied
+## H3 (bonus) — Fix E14 by removing a final "s" (not applied)
 
 I tried H3 (remove a final "s" from words longer than four letters in `tokenize`) and then reverted it, so `rag/index.py` keeps the original `tokenize`. If I write the function as required by problem H3:
 
