@@ -9,22 +9,27 @@ from assistant_core.errors import ConfigError
 
 class Settings(BaseModel):
     data_dir: Path = Path("data")
+    kb_dir: Path = Path("data/kb")
+    retrieval_kind: str = "bm25"
+    retrieval_min_score: float = 2.0
     llm_provider: str = "stub"
-    llm_api_key: str | None = Field(default=None, repr=False)  # never printed or logged
+    llm_model: str = "llama3.2"
+    llm_base_url: str = "http://localhost:11434"
+    llm_api_key: str | None = Field(default=None, repr=False)
+    llm_timeout_s: float = 30.0
+    prompt_version: str = "v1"
     credit_rate_vnd: int = 450_000
     retake_multiplier: float = 1.5
     max_credits: int = 30
     log_level: str = "INFO"
-    # Lab 4 - API
-    api_admin_key: str | None = Field(default=None, repr=False)  # never printed or logged
+    api_admin_key: str | None = Field(default=None, repr=False)
     weather_url: str = "https://api.open-meteo.com/v1/forecast"
     weather_timeout_s: float = 3.0
-    campus_lat: float = 10.7626  # University of Science, HCMC (Nguyen Van Cu campus)
+    campus_lat: float = 10.7626
     campus_lon: float = 106.6822
     rate_limit_per_min: int = 30
-    # Lab 5 - persistence
     database_url: str = "sqlite:///assistant.db"
-    session_salt: str = Field(default="dev-salt", repr=False)  # secret salt for hashing session ids
+    session_salt: str = Field(default="dev-salt", repr=False)
 
 
 def load_settings(env_file: str | None = ".env") -> Settings:
@@ -34,8 +39,15 @@ def load_settings(env_file: str | None = ".env") -> Settings:
     try:
         s = Settings(
             data_dir=Path(os.getenv("ASSISTANT_DATA_DIR", "data")),
+            kb_dir=Path(os.getenv("KB_DIR", "data/kb")),
+            retrieval_kind=os.getenv("RETRIEVAL_KIND", "bm25"),
+            retrieval_min_score=float(os.getenv("RETRIEVAL_MIN_SCORE", "2.0")),
             llm_provider=os.getenv("LLM_PROVIDER", "stub"),
+            llm_model=os.getenv("LLM_MODEL", "llama3.2"),
+            llm_base_url=os.getenv("LLM_BASE_URL", "http://localhost:11434"),
             llm_api_key=os.getenv("LLM_API_KEY") or None,
+            llm_timeout_s=float(os.getenv("LLM_TIMEOUT_S", "30.0")),
+            prompt_version=os.getenv("PROMPT_VERSION", "v1"),
             credit_rate_vnd=int(os.getenv("CREDIT_RATE_VND", "450000")),
             retake_multiplier=float(os.getenv("RETAKE_MULTIPLIER", "1.5")),
             max_credits=int(os.getenv("MAX_CREDITS", "30")),
@@ -52,7 +64,7 @@ def load_settings(env_file: str | None = ".env") -> Settings:
     except ValueError as exc:
         raise ConfigError(f"invalid configuration value: {exc}") from exc
 
-    if s.llm_provider != "stub" and not s.llm_api_key:
+    if s.llm_provider not in ("stub", "ollama", "template") and not s.llm_api_key:
         raise ConfigError(f"LLM_API_KEY is required when LLM_PROVIDER={s.llm_provider!r}")
 
     return s
