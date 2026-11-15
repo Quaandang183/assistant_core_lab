@@ -17,7 +17,7 @@ class Settings(BaseModel):
     llm_base_url: str = "http://localhost:11434"
     llm_api_key: str | None = Field(default=None, repr=False)
     llm_timeout_s: float = 30.0
-    prompt_version: str = "v1"
+    prompt_version: str = "answer_v1"
     credit_rate_vnd: int = 450_000
     retake_multiplier: float = 1.5
     max_credits: int = 30
@@ -47,7 +47,7 @@ def load_settings(env_file: str | None = ".env") -> Settings:
             llm_base_url=os.getenv("LLM_BASE_URL", "http://localhost:11434"),
             llm_api_key=os.getenv("LLM_API_KEY") or None,
             llm_timeout_s=float(os.getenv("LLM_TIMEOUT_S", "30.0")),
-            prompt_version=os.getenv("PROMPT_VERSION", "v1"),
+            prompt_version=os.getenv("PROMPT_VERSION", "answer_v1"),
             credit_rate_vnd=int(os.getenv("CREDIT_RATE_VND", "450000")),
             retake_multiplier=float(os.getenv("RETAKE_MULTIPLIER", "1.5")),
             max_credits=int(os.getenv("MAX_CREDITS", "30")),
