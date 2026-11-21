@@ -59,8 +59,23 @@ for i, m in enumerate(st.session_state.messages):
                 else:
                     st.warning("Could not send feedback. Please try again.")
 
+# ---- quick-start prompts on main screen for first-time users ---------------------
+if len(st.session_state.messages) == 1:
+    st.caption("Suggested questions:")
+    q_cols = st.columns(2)
+    quick_prompts = [
+        "Can I register for a thesis with 118 credits?",
+        "Where can I get my student ID card reissued?",
+    ]
+    for idx, qp in enumerate(quick_prompts):
+        if q_cols[idx].button(qp, key=f"quick_{idx}", use_container_width=True):
+            st.session_state.pending = qp
+
 # ---- new question ----------------------------------------------------------------
-question = st.chat_input("Ask about fees, offices or the handbook…") or st.session_state.pop("pending", None)
+question = (
+    st.chat_input("Ask about thesis credit requirements, student card reissue, fees, or offices…") 
+    or st.session_state.pop("pending", None)
+)
 if question:
     problem = validate_input(question)
     if problem:
