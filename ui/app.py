@@ -34,7 +34,7 @@ with st.sidebar:
     for ex in EXAMPLES:
         if st.button(ex, use_container_width=True):
             st.session_state.pending = ex
-    st.caption("This is an AI assistant. Check important decisions with the Training Office.")
+    st.caption("This is an AI assistant. For important decisions, confirm with the office named in the answer or with your academic advisor.")
 
 # ---- history -------------------------------------------------------------------
 for i, m in enumerate(st.session_state.messages):
