@@ -5,6 +5,7 @@ Pipeline: UI -> API -> data / retrieval / AI / tools -> response.
 
 ## Setup
 ```
+cd assistant_core_lab
 python -m venv .venv
 .venv\\Scripts\\activate          # Git Bash: source .venv/Scripts/activate
 pip install -r requirements.txt
@@ -26,7 +27,6 @@ The UI talks to the backend only through HTTP. If the API is on another address,
 ## Run the tests
 ```
 pytest -q
-cd practice && pytest -q test_hello_streamlit.py
 ```
 
 ## Chat API (v1)
@@ -37,5 +37,4 @@ Errors: 422 invalid input, 429 too many requests.
 
 ## Lab 7 files
 - `ui/app.py`, `ui/logic.py`, `ui/api_client.py` - Streamlit chat page (L1 sources, L2 status notes, F1 thumbs-down)
-- `practice/hello_streamlit.py` - Streamlit warm-up U1-U4
-- `worksheets/usability_checklist.md`, `worksheets/user_test_observations.md` - usability work
+- `docs/lab07/usability_checklist.md`, `docs/lab07/user_test_observations.md` - usability work
