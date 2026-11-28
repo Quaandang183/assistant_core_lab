@@ -115,3 +115,10 @@ def test_offices_contains_library(client):
     library = next(o for o in items if o["name"] == "Library")
     assert library == {"name": "Library", "room": "B.201", "hours": "Mon-Sat 07:00-20:00"}
     assert [o["name"] for o in items] == sorted(o["name"] for o in items)
+
+
+def test_chat_escalate_fields_reach_the_ui(client):
+    body = client.post("/v1/chat", json={"message": "what is the capital of France"}).json()
+    assert body["escalate"] is True and body["intent"] == "unknown"
+    body = client.post("/v1/chat", json={"message": "tuition for 18 credits and 2 retake"}).json()
+    assert body["escalate"] is False and "path" in body and "confidence" in body

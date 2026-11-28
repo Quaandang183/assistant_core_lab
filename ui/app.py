@@ -34,7 +34,7 @@ with st.sidebar:
     for ex in EXAMPLES:
         if st.button(ex, use_container_width=True):
             st.session_state.pending = ex
-    st.caption("This is an AI assistant. Check important decisions with the Training Office.")
+    st.caption("This is an AI assistant. For important decisions, confirm with the office named in the answer or with your academic advisor.")
 
 # ---- history -------------------------------------------------------------------
 for i, m in enumerate(st.session_state.messages):
@@ -48,9 +48,12 @@ for i, m in enumerate(st.session_state.messages):
         if rid and rid not in st.session_state.rated:
             c1, c2, _ = st.columns([1, 1, 6])
             if c1.button("👍", key=f"up{i}"):
-                client.send_feedback(rid, 1)
-                st.session_state.rated.add(rid)
-                st.toast("Thanks for your feedback!")
+                if client.send_feedback(rid, 1):
+                    st.session_state.rated.add(rid)
+                    st.toast("Thanks for your feedback!")
+                    st.rerun()
+                else:
+                    st.warning("Could not send feedback. Please try again.")
             if c2.button("👎", key=f"down{i}"):
                 if client.send_feedback(rid, -1):
                     st.session_state.rated.add(rid)
@@ -59,8 +62,23 @@ for i, m in enumerate(st.session_state.messages):
                 else:
                     st.warning("Could not send feedback. Please try again.")
 
+# ---- quick-start prompts on main screen for first-time users ---------------------
+if len(st.session_state.messages) == 1:
+    st.caption("Suggested questions:")
+    q_cols = st.columns(2)
+    quick_prompts = [
+        "Can I register for a thesis with 118 credits?",
+        "Where can I get my student ID card reissued?",
+    ]
+    for idx, qp in enumerate(quick_prompts):
+        if q_cols[idx].button(qp, key=f"quick_{idx}", use_container_width=True):
+            st.session_state.pending = qp
+
 # ---- new question ----------------------------------------------------------------
-question = st.chat_input("Ask about fees, offices or the handbook…") or st.session_state.pop("pending", None)
+question = (
+    st.chat_input("Ask about thesis credit requirements, student card reissue, fees, or offices…") 
+    or st.session_state.pop("pending", None)
+)
 if question:
     problem = validate_input(question)
     if problem:
